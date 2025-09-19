@@ -897,18 +897,16 @@
                     type: "LiveStream",
                     target: document.querySelector('#video'),
                     constraints: {
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 },
-                        facingMode: "environment",
-                        aspectRatio: { ideal: 1.7777778 }
-                    },
-                    singleChannel: false // This helps with video display
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment"
+                    }
                 },
                 locator: {
-                    patchSize: "large", // Changed from medium for better mobile performance
-                    halfSample: true
+                    patchSize: "medium",
+                    halfSample: false // Changed to false for better accuracy
                 },
-                numOfWorkers: navigator.hardwareConcurrency || 2,
+                numOfWorkers: 4,
                 frequency: 10,
                 decoder: {
                     readers: [
@@ -916,26 +914,22 @@
                         "ean_reader",
                         "ean_8_reader",
                         "code_39_reader",
-                        "code_39_vin_reader",
-                        "codabar_reader",
                         "upc_reader",
                         "upc_e_reader"
-                    ],
-                    debug: {
-                        drawBoundingBox: true,
-                        showFrequency: false,
-                        drawScanline: true,
-                        showPattern: false
-                    }
+                    ]
                 },
-                locate: true
+                locate: true,
+                debug: {
+                    drawBoundingBox: true,
+                    showFrequency: true,
+                    drawScanline: true,
+                    showPattern: true
+                }
             }, function(err) {
                 if (err) {
                     console.error('Quagga init error:', err);
-                    showToast('Scanner initialization failed', 'error');
+                    showToast('Scanner initialization failed: ' + err.message, 'error');
                     videoContainer.style.display = 'none';
-                    
-                    // Try fallback to manual camera
                     fallbackCameraMode();
                     return;
                 }
@@ -943,56 +937,63 @@
                 Quagga.start();
                 isScanning = true;
                 
-                // Make sure video is visible
-                setTimeout(() => {
-                    const video = document.querySelector('#video video');
-                    if (video) {
-                        video.style.display = 'block';
-                        video.style.visibility = 'visible';
-                    }
-                }, 100);
+                // Show instructions
+                showToast('Hold barcode steady in frame', 'info');
             });
 
-            // Add multiple detection validation to reduce false positives
-            let lastCode = null;
-            let codeCount = 0;
+            // Detection counter for debugging
+            let detectionCount = 0;
+            let lastDetection = Date.now();
             
+            // Single detection is often enough on mobile
             Quagga.onDetected(function(result) {
-                const code = result.codeResult.code;
-                
-                // Validate by requiring same code detected 3 times
-                if (code === lastCode) {
-                    codeCount++;
-                    if (codeCount >= 2) { // Reduced from 3 for faster scanning
-                        document.getElementById('barcode').value = code;
-                        showToast('Barcode scanned: ' + code, 'success');
-                        
-                        // Vibrate if available
-                        if ('vibrate' in navigator) {
-                            navigator.vibrate(200);
-                        }
-                        
-                        stopScanner();
-                        lastCode = null;
-                        codeCount = 0;
-                    }
-                } else {
-                    lastCode = code;
-                    codeCount = 1;
+                if (!result || !result.codeResult || !result.codeResult.code) {
+                    console.log('Invalid detection result');
+                    return;
                 }
+                
+                const code = result.codeResult.code;
+                const confidence = result.codeResult.format ? 1 : 0;
+                
+                console.log('Barcode detected:', code, 'Format:', result.codeResult.format);
+                
+                // Simple validation - just check if we have a code
+                if (code && code.length > 0) {
+                    document.getElementById('barcode').value = code;
+                    showToast('✓ Scanned: ' + code, 'success');
+                    
+                    // Vibrate if available
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate([200, 100, 200]);
+                    }
+                    
+                    // Stop scanning immediately after successful scan
+                    setTimeout(() => {
+                        stopScanner();
+                    }, 500);
+                }
+                
+                detectionCount++;
+                lastDetection = Date.now();
             });
 
-            // Add visual feedback for processing
+            // Add processed handler for debugging
             Quagga.onProcessed(function(result) {
                 const drawingCtx = Quagga.canvas.ctx.overlay;
                 const drawingCanvas = Quagga.canvas.dom.overlay;
 
                 if (result) {
-                    if (result.boxes) {
+                    // Clear previous drawings
+                    if (drawingCtx) {
                         drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                        result.boxes.filter(box => box !== result.box).forEach(box => {
+                    }
+                    
+                    if (result.boxes) {
+                        result.boxes.filter(function (box) {
+                            return box !== result.box;
+                        }).forEach(function (box) {
                             Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
-                                color: 'green',
+                                color: 'yellow',
                                 lineWidth: 2
                             });
                         });
@@ -1000,30 +1001,105 @@
 
                     if (result.box) {
                         Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
-                            color: '#00D4FF',
-                            lineWidth: 2
+                            color: '#00FF00',
+                            lineWidth: 3
                         });
                     }
 
                     if (result.codeResult && result.codeResult.code) {
+                        // Draw the barcode location
                         Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
-                            color: '#00D4FF',
-                            lineWidth: 3
+                            color: 'red',
+                            lineWidth: 4
                         });
+                        
+                        // Log for debugging
+                        console.log('Processing detected code:', result.codeResult.code);
                     }
                 }
             });
         }
 
+        function stopScanner() {
+            if (isScanning) {
+                Quagga.stop();
+                isScanning = false;
+                console.log('Scanner stopped');
+            }
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        // Alternative scanner using device camera directly
+        function useDeviceCamera() {
+            const html = `
+                <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment" 
+                    id="camera-file-input" 
+                    style="display: none;"
+                    onchange="processImageFile(event)"
+                >
+            `;
+            
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            document.body.appendChild(div);
+            
+            document.getElementById('camera-file-input').click();
+        }
+
+        function processImageFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Try to decode with Quagga from image
+                Quagga.decodeSingle({
+                    decoder: {
+                        readers: [
+                            "code_128_reader",
+                            "ean_reader",
+                            "ean_8_reader",
+                            "code_39_reader",
+                            "upc_reader",
+                            "upc_e_reader"
+                        ]
+                    },
+                    locate: true,
+                    src: e.target.result
+                }, function(result) {
+                    if(result && result.codeResult) {
+                        document.getElementById('barcode').value = result.codeResult.code;
+                        showToast('✓ Barcode found: ' + result.codeResult.code, 'success');
+                    } else {
+                        showToast('No barcode found in image', 'error');
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+            
+            // Clean up
+            event.target.remove();
+        }
+
         function fallbackCameraMode() {
-            // Fallback to basic camera input if Quagga fails
             const html = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-primary); z-index: 1000; padding: 2rem;">
-                    <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Manual Camera Mode</h3>
-                    <input type="file" accept="image/*" capture="environment" onchange="handleFileCapture(event)" style="margin-bottom: 1rem;">
-                    <br>
-                    <button onclick="closeFallbackCamera()" class="btn btn-secondary">Cancel</button>
-                    <p style="color: var(--text-secondary); margin-top: 1rem;">Take a photo of the barcode using your camera app, then select it here.</p>
+                    <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Scanner Options</h3>
+                    <button onclick="useDeviceCamera()" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">
+                        📸 Take Photo of Barcode
+                    </button>
+                    <button onclick="manualBarcodeEntry()" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
+                        ⌨️ Enter Barcode Manually
+                    </button>
+                    <button onclick="closeFallbackCamera()" class="btn btn-secondary" style="width: 100%;">
+                        Cancel
+                    </button>
+                    <p style="color: var(--text-secondary); margin-top: 1rem; font-size: 0.9rem;">
+                        Tip: If live scanning isn't working, take a photo of the barcode or enter it manually.
+                    </p>
                 </div>
             `;
             
@@ -1033,13 +1109,10 @@
             document.body.appendChild(div);
         }
 
-        function handleFileCapture(event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Here you could integrate with a barcode reading service
-                showToast('Photo captured - manual entry required', 'info');
-                closeFallbackCamera();
-            }
+        function manualBarcodeEntry() {
+            closeFallbackCamera();
+            document.getElementById('barcode').focus();
+            showToast('Enter barcode manually', 'info');
         }
 
         function closeFallbackCamera() {
