@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>IT Recycling Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #00d4ff;
+            --accent-hover: #00a8cc;
+            --success: #4ade80;
+            --error: #ef4444;
+            --warning: #fbbf24;
+            --border: #333333;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e5e5e5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --accent: #0099cc;
+            --accent-hover: #007399;
+            --success: #22c55e;
+            --error: #dc2626;
+            --warning: #f59e0b;
+            --border: #d4d4d4;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            box-shadow: 0 2px 10px var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(26, 26, 26, 0.95);
+        }
+
+        [data-theme="light"] .header {
+            background: rgba(245, 245, 245, 0.95);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #00ffaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px var(--accent);
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .scanner-section {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scan-button {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, var(--accent), #00a8cc);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scan-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .scan-button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .form-section {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .device-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .device-type-btn {
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+        }
+
+        .device-type-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .device-type-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--shadow);
+        }
+
+        .device-icon {
+            font-size: 1.5rem;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--success), #22c55e);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px var(--shadow);
+        }
+
+        .recent-scans {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .recent-scans h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .scan-item {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        .scan-item-info {
+            flex: 1;
+        }
+
+        .scan-item-barcode {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .scan-item-details {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .scan-item-type {
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .settings-content {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px var(--shadow);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-settings {
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-primary);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-settings:hover {
+            background: var(--error);
+            transform: rotate(90deg);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .floating-menu {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #00a8cc);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px var(--shadow);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px var(--shadow);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .toast.error {
+            background: var(--error);
+            color: white;
+        }
+
+        #video-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: black;
+            z-index: 999;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 3px solid var(--accent);
+            border-radius: 20px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        #scanner-overlay::before,
+        #scanner-overlay::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--accent);
+        }
+
+        #scanner-overlay::before {
+            top: -3px;
+            left: -3px;
+            border-right: none;
+            border-bottom: none;
+            border-top-left-radius: 20px;
+        }
+
+        #scanner-overlay::after {
+            bottom: -3px;
+            right: -3px;
+            border-left: none;
+            border-top: none;
+            border-bottom-right-radius: 20px;
+        }
+
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: calc(100% - 3px); }
+            100% { top: 0; }
+        }
+
+        .close-scanner {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        @media (max-width: 480px) {
+            .device-type-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">IT Recycling</h1>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <svg id="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                        <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
+                    </svg>
+                    <svg id="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                        <path d="M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="scanner-section">
+                <button class="scan-button" onclick="startScanner()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M9 3H5C3.9 3 3 3.9 3 5v4h2V5h4V3zm6 0v2h4v4h2V5c0-1.1-.9-2-2-2h-4zm-6 18h4v-2H9v-4H7v4c0 1.1.9 2 2 2zm10-6v4h-4v2h4c1.1 0 2-.9 2-2v-4h-2zm-8-4h2v6h-2zm-4 0h2v6H7zm8 0h2v6h-2z"/>
+                    </svg>
+                    <span>Scan Barcode</span>
+                </button>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group">
+                    <label class="form-label">Barcode</label>
+                    <input type="text" id="barcode" class="form-input" placeholder="Scan or enter barcode">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Device Type</label>
+                    <div class="device-type-grid">
+                        <button class="device-type-btn" onclick="selectDeviceType('laptop')">
+                            <span class="device-icon">💻</span>
+                            <span>Laptop</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('pc')">
+                            <span class="device-icon">🖥️</span>
+                            <span>PC</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('phone')">
+                            <span class="device-icon">📱</span>
+                            <span>Phone</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('hdd')">
+                            <span class="device-icon">💾</span>
+                            <span>HDD</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('server')">
+                            <span class="device-icon">🗄️</span>
+                            <span>Server</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('switch')">
+                            <span class="device-icon">🔌</span>
+                            <span>Switch</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('router')">
+                            <span class="device-icon">📡</span>
+                            <span>Router</span>
+                        </button>
+                        <button class="device-type-btn" onclick="selectDeviceType('other')">
+                            <span class="device-icon">📦</span>
+                            <span>Other</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Serial Number</label>
+                    <input type="text" id="serial" class="form-input" placeholder="Enter serial number">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Make/Model</label>
+                    <input type="text" id="model" class="form-input" placeholder="e.g., Dell Latitude 5520">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Condition</label>
+                    <select id="condition" class="form-select">
+                        <option value="">Select condition</option>
+                        <option value="working">Working</option>
+                        <option value="faulty">Faulty</option>
+                        <option value="parts">For Parts</option>
+                        <option value="destroyed">Destroyed</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="notes" class="form-input" placeholder="Additional notes...">
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="saveItem()">
+                        <span>💾</span>
+                        <span>Save Item</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearForm()">
+                        <span>🔄</span>
+                        <span>Clear</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="recent-scans">
+                <h3>Recent Scans</h3>
+                <div id="recent-list"></div>
+            </div>
+        </main>
+
+        <div class="floating-menu">
+            <button class="fab" onclick="exportData()">
+                <span>📊</span>
+            </button>
+            <button class="fab" onclick="showSettings()">
+                <span>⚙️</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="settings-modal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-settings" onclick="closeSettings()">✕</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-scans">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="today-scans">0</div>
+                    <div class="stat-label">Today</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">SharePoint Site URL</label>
+                <input type="text" id="sharepoint-url" class="form-input" placeholder="https://company.sharepoint.com/sites/...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">List Name</label>
+                <input type="text" id="list-name" class="form-input" placeholder="IT Recycling Log">
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings()">
+                Save Settings
+            </button>
+        </div>
+    </div>
+
+    <div id="video-container">
+        <video id="video"></video>
+        <div id="scanner-overlay">
+            <div class="scanner-line"></div>
+        </div>
+        <button class="close-scanner" onclick="stopScanner()">✕</button>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script>
+        let selectedDeviceType = '';
+        let scannedItems = JSON.parse(localStorage.getItem('scannedItems') || '[]');
+        let isScanning = false;
+
+        // Initialize theme
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+        updateThemeIcon();
+
+        // Load recent scans
+        updateRecentScans();
+        updateStats();
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        function selectDeviceType(type) {
+            selectedDeviceType = type;
+            document.querySelectorAll('.device-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.device-type-btn').classList.add('active');
+        }
+
+        function startScanner() {
+            const videoContainer = document.getElementById('video-container');
+            videoContainer.style.display = 'block';
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#video'),
+                    constraints: {
+                        facingMode: "environment"
+                    }
+                },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 2,
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader"]
+                },
+                locate: true
+            }, function(err) {
+                if (err) {
+                    console.log(err);
+                    showToast('Camera access denied', 'error');
+                    videoContainer.style.display = 'none';
+                    return;
+                }
+                Quagga.start();
+                isScanning = true;
+            });
+
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                document.getElementById('barcode').value = code;
+                showToast('Barcode scanned: ' + code, 'success');
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if (isScanning) {
+                Quagga.stop();
+                isScanning = false;
+            }
+            document.getElementById('video-container').style.display = 'none';
+        }
+
+        function saveItem() {
+            const barcode = document.getElementById('barcode').value;
+            const serial = document.getElementById('serial').value;
+            const model = document.getElementById('model').value;
+            const condition = document.getElementById('condition').value;
+            const notes = document.getElementById('notes').value;
+
+            if (!barcode) {
+                showToast('Please scan or enter a barcode', 'error');
+                return;
+            }
+
+            if (!selectedDeviceType) {
+                showToast('Please select a device type', 'error');
+                return;
+            }
+
+            const item = {
+                barcode,
+                deviceType: selectedDeviceType,
+                serial,
+                model,
+                condition,
+                notes,
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString()
+            };
+
+            scannedItems.unshift(item);
+            localStorage.setItem('scannedItems', JSON.stringify(scannedItems));
+            
+            // Here you would normally send to SharePoint
+            sendToSharePoint(item);
+            
+            showToast('Item saved successfully!', 'success');
+            clearForm();
+            updateRecentScans();
+            updateStats();
+        }
+
+        function clearForm() {
+            document.getElementById('barcode').value = '';
+            document.getElementById('serial').value = '';
+            document.getElementById('model').value = '';
+            document.getElementById('condition').value = '';
+            document.getElementById('notes').value = '';
+            selectedDeviceType = '';
+            document.querySelectorAll('.device-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+
+        function updateRecentScans() {
+            const recentList = document.getElementById('recent-list');
+            const recent = scannedItems.slice(0, 5);
+            
+            if (recent.length === 0) {
+                recentList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">No scans yet</div>';
+                return;
+            }
+
+            recentList.innerHTML = recent.map(item => `
+                <div class="scan-item">
+                    <div class="scan-item-info">
+                        <div class="scan-item-barcode">${item.barcode}</div>
+                        <div class="scan-item-details">
+                            ${item.model || 'No model'} • ${item.serial || 'No serial'}
+                        </div>
+                        <div class="scan-item-details">${item.time}</div>
+                    </div>
+                    <div class="scan-item-type">${item.deviceType.toUpperCase()}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = scannedItems.length;
+            const today = scannedItems.filter(item => item.date === new Date().toLocaleDateString()).length;
+            
+            document.getElementById('total-scans').textContent = total;
+            document.getElementById('today-scans').textContent = today;
+        }
+
+        function exportData() {
+            if (scannedItems.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            const csv = convertToCSV(scannedItems);
+            downloadCSV(csv, `IT_Recycling_${new Date().toISOString().split('T')[0]}.csv`);
+            showToast('Data exported successfully!', 'success');
+        }
+
+        function convertToCSV(items) {
+            const headers = ['Barcode', 'Device Type', 'Serial Number', 'Model', 'Condition', 'Notes', 'Date', 'Time'];
+            const rows = items.map(item => [
+                item.barcode,
+                item.deviceType,
+                item.serial || '',
+                item.model || '',
+                item.condition || '',
+                item.notes || '',
+                item.date,
+                item.time
+            ]);
+            
+            return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showSettings() {
+            document.getElementById('settings-modal').classList.add('active');
+            
+            // Load saved settings
+            const savedUrl = localStorage.getItem('sharepointUrl');
+            const savedList = localStorage.getItem('listName');
+            
+            if (savedUrl) document.getElementById('sharepoint-url').value = savedUrl;
+            if (savedList) document.getElementById('list-name').value = savedList;
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('sharepoint-url').value;
+            const listName = document.getElementById('list-name').value;
+            
+            localStorage.setItem('sharepointUrl', url);
+            localStorage.setItem('listName', listName);
+            
+            showToast('Settings saved!', 'success');
+            closeSettings();
+        }
+
+        function sendToSharePoint(item) {
+            // This is a placeholder for SharePoint integration
+            // In production, you would use Microsoft Graph API or SharePoint REST API
+            // You'll need proper authentication (Azure AD) to write to SharePoint
+            
+            const sharepointUrl = localStorage.getItem('sharepointUrl');
+            const listName = localStorage.getItem('listName');
+            
+            if (!sharepointUrl || !listName) {
+                console.log('SharePoint settings not configured');
+                return;
+            }
+            
+            // Example of what the API call would look like:
+            /*
+            fetch(`${sharepointUrl}/_api/web/lists/getbytitle('${listName}')/items`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'Content-Type': 'application/json;odata=verbose',
+                    'Authorization': 'Bearer ' + accessToken
+                },
+                body: JSON.stringify({
+                    '__metadata': { 'type': 'SP.Data.ITRecyclingListItem' },
+                    'Title': item.barcode,
+                    'DeviceType': item.deviceType,
+                    'SerialNumber': item.serial,
+                    'Model': item.model,
+                    'Condition': item.condition,
+                    'Notes': item.notes
+                })
+            });
+            */
+            
+            console.log('Would send to SharePoint:', item);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Service Worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:text/javascript;base64,Ly8gU2VydmljZSBXb3JrZXIgZm9yIG9mZmxpbmUgZnVuY3Rpb25hbGl0eQ==')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
+        }
+    </script>
+</body>
+</html>
